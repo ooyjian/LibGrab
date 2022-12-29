@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 // Global variables go here
-var DEBUG_LEVEL int = 1
+var DEBUG_LEVEL int = 2
 
 func printlnWrapper(content string, level int) {
 	if level > DEBUG_LEVEL {

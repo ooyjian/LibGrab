@@ -12,18 +12,18 @@ import (
 
 func parseEntry(n *html.Node, m map[string]string) {
 	if n == nil {
-		printlnWrapper("The input node is nil", 1)
+		printlnWrapper("The input node is nil", 100)
 		return
 	}
 
 	if n.DataAtom != atom.Td {
-		printlnWrapper("The element needs to be a <td>", 1)
+		printlnWrapper("The element needs to be a <td>", 10)
 		return
 	}
 
 	checkElemExist := func(elem string) bool {
 		if n.FirstChild == nil {
-			printlnWrapper("There are no "+elem+" provided", 1)
+			printlnWrapper("There are no "+elem+" provided", 3)
 			return false
 		}
 		return true
@@ -35,43 +35,43 @@ func parseEntry(n *html.Node, m map[string]string) {
 		case 1: // author, grab name
 			author := n.FirstChild.FirstChild.Data
 			m["author"] = author
-			printlnWrapper(author, 1)
+			printlnWrapper(author, 3)
 		case 2: // book title and link
 			title := n.FirstChild.FirstChild.Data
 			m["title"] = title
-			printlnWrapper(title, 1)
+			printlnWrapper(title, 3)
 		case 3:
 			if checkElemExist("PUBLISHER") {
 				publisher := n.FirstChild.Data
 				m["publisher"] = publisher
-				printlnWrapper(publisher, 1)
+				printlnWrapper(publisher, 3)
 			}
 		case 4:
 			if checkElemExist("YEAR") {
 				year := n.FirstChild.Data
 				m["year"] = year
-				printlnWrapper(year, 1)
+				printlnWrapper(year, 3)
 			}
 		case 5:
 			if checkElemExist("PAGES") {
 				pages := n.FirstChild.Data
 				m["pages"] = pages
-				printlnWrapper(pages, 1)
+				printlnWrapper(pages, 3)
 			}
 		case 7:
 			size := n.FirstChild.Data
 			m["size"] = "size"
-			printlnWrapper(size, 1)
+			printlnWrapper(size, 3)
 		case 8:
 			extension := n.FirstChild.Data
 			m["extension"] = extension
-			printlnWrapper(extension, 1)
+			printlnWrapper(extension, 3)
 		case 9:
 			if checkElemExist("MIRROR1") {
 				for _, attr := range n.FirstChild.Attr {
 					if attr.Key == "href" {
 						m["mirror1"] = attr.Val
-						printlnWrapper(attr.Val, 1)
+						printlnWrapper(attr.Val, 3)
 					}
 				}
 			}
@@ -81,7 +81,7 @@ func parseEntry(n *html.Node, m map[string]string) {
 				for _, attr := range n.FirstChild.Attr {
 					if attr.Key == "href" {
 						m["mirror2"] = attr.Val
-						printlnWrapper(attr.Val, 1)
+						printlnWrapper(attr.Val, 3)
 					}
 				}
 			}
@@ -89,25 +89,32 @@ func parseEntry(n *html.Node, m map[string]string) {
 	}
 }
 
-func getBookInfo(n *html.Node) bool {
-	for n.DataAtom != atom.Body {
-		if n == nil {
-			printlnWrapper("Can't find <body>", 1)
+func findHtmlBody(n **html.Node) bool {
+	for (*n).DataAtom != atom.Body {
+		if *n == nil {
+			printlnWrapper("Can't find <body>", 100)
 			return false
 		}
-		if n.DataAtom == atom.Html {
-			n = n.FirstChild
+		if (*n).DataAtom == atom.Html {
+			*n = (*n).FirstChild
 		}
-		n = n.NextSibling
+		*n = (*n).NextSibling
+	}
+	return true
+}
+
+func getBookInfo(n *html.Node) bool {
+	if !findHtmlBody(&n) {
+		return false
 	}
 	n = n.FirstChild
 
 	bookTable := make([]map[string]string, 30, 30)
 	for n != nil {
-		// printlnWrapper(n.Data)
+		printlnWrapper(n.Data, 1)
 		for _, attr := range n.Attr {
-			// printlnWrapper("Key: " + attr.Key)
-			// printlnWrapper("Val: " + attr.Val)
+			printlnWrapper("Key: "+attr.Key, 1)
+			printlnWrapper("Val: "+attr.Val, 1)
 			if attr.Key == "class" && attr.Val == "c" {
 				n = n.FirstChild.FirstChild.NextSibling
 				if n.DataAtom == 0 {
@@ -152,10 +159,11 @@ func MakeRequest(name string) error {
 	url := "http://libgen.rs/search.php?req=" + name + "&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
 	resp, err := http.Get(url)
 	if err != nil {
+		log.Fatal(err)
 		return err
 	}
 	if resp.StatusCode != 200 {
-		printlnWrapper(resp.Status, 1)
+		printlnWrapper(resp.Status, 100)
 		return nil
 	}
 
