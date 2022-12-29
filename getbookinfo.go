@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-	"net/http"
 	"strings"
 	"sync"
 
@@ -103,9 +101,9 @@ func findHtmlBody(n **html.Node) bool {
 	return true
 }
 
-func getBookInfo(n *html.Node) bool {
+func getBookInfo(n *html.Node) []map[string]string {
 	if !findHtmlBody(&n) {
-		return false
+		return nil
 	}
 	n = n.FirstChild
 
@@ -119,7 +117,7 @@ func getBookInfo(n *html.Node) bool {
 				n = n.FirstChild.FirstChild.NextSibling
 				if n.DataAtom == 0 {
 					printlnWrapper("There are no books with this name available.", 1)
-					return false
+					return nil
 				}
 				// parse to the actual book rows (starting from the second <tr>)
 				var wg sync.WaitGroup
@@ -139,43 +137,42 @@ func getBookInfo(n *html.Node) bool {
 					}()
 				}
 				wg.Wait()
+
 				for j := 0; j < len(bookTable); j++ {
 					m := bookTable[j]
 					for k, v := range m {
 						printlnWrapper(k+": "+v, 2)
 					}
 				}
-				return true
+
+				getDownloadLink(bookTable[0]["mirror1"])
+
+				return bookTable
 			}
 		}
 		n = n.NextSibling
 	}
 	printlnWrapper("Can't find the right <table>", 1)
-	return false
+	return nil
 }
 
-func MakeRequest(name string) error {
+func makeRequest(name string) error {
 	name = strings.Replace(name, " ", "+", -1)
 	url := "http://libgen.rs/search.php?req=" + name + "&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
-	resp, err := http.Get(url)
+	err := getRequest(url)
 	if err != nil {
-		log.Fatal(err)
 		return err
-	}
-	if resp.StatusCode != 200 {
-		printlnWrapper(resp.Status, 100)
-		return nil
 	}
 
 	body, err := html.Parse(resp.Body)
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 	body = body.FirstChild
 
-	if !getBookInfo(body) {
-		return nil
+	bookTable := getBookInfo(body)
+	if bookTable != nil {
+
 	}
 
 	return nil
