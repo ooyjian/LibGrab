@@ -130,6 +130,9 @@ func getBookInfo(n *html.Node) []map[string]string {
 					bookMap := make(map[string]string)
 					bookTable[bookIndex] = bookMap
 					bookIndex++
+					if bookIndex > MAX_BOOKS {
+						break
+					}
 					wg.Add(1)
 					go func() {
 						parseEntry(rowElems, bookMap)
@@ -145,7 +148,7 @@ func getBookInfo(n *html.Node) []map[string]string {
 					}
 				}
 
-				getDownloadLink(bookTable[0]["mirror1"])
+				//getDownloadLink(bookTable[0]["mirror1"])
 
 				return bookTable
 			}
@@ -159,7 +162,7 @@ func getBookInfo(n *html.Node) []map[string]string {
 func makeRequest(name string) error {
 	name = strings.Replace(name, " ", "+", -1)
 	url := "http://libgen.rs/search.php?req=" + name + "&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
-	err := getRequest(url)
+	resp, err := getRequest(url)
 	if err != nil {
 		return err
 	}
@@ -172,7 +175,7 @@ func makeRequest(name string) error {
 
 	bookTable := getBookInfo(body)
 	if bookTable != nil {
-
+		displayBooks(bookTable)
 	}
 
 	return nil

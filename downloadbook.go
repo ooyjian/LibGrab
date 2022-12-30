@@ -8,15 +8,15 @@ import (
 	"golang.org/x/net/html"
 )
 
-func getDownloadLink(mirrorLink string) error {
-	err := getRequest(mirrorLink)
+func getDownloadLink(mirrorLink string) (string, error) {
+	resp, err := getRequest(mirrorLink)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	body, err := html.Parse(resp.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
 	body = body.FirstChild
 
@@ -30,16 +30,15 @@ func getDownloadLink(mirrorLink string) error {
 		if attr.Key == "href" {
 			downloadLink := attr.Val
 			printlnWrapper(downloadLink, 5)
-			requestDownload(downloadLink)
-			break
+			return downloadLink, nil
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 func requestDownload(link, filepath, title string) error {
-	err := getRequest(mirrorLink)
+	resp, err := getRequest(link)
 	if err != nil {
 		return err
 	}
