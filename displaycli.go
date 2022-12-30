@@ -39,12 +39,16 @@ func displayBooks(bt []map[string]string) error {
 	t.Render()
 
 	var id int
-	fmt.Print("Enter the book you want to download (1-3): ")
+	fmt.Print("Enter the book you want to download (1-" + strconv.Itoa(MAX_BOOKS) + "): ")
 	_, err := fmt.Scanf("%d", &id)
 	if err != nil {
 		return err
 	}
 	id -= 1 // to match the right index of the book
+	if id < 0 || id > 2 {
+		printlnWrapper("The input is not within range.", 100)
+		return nil
+	}
 
 	for i := 1; i < 3; i++ {
 		link, err := getDownloadLink(cleanbt[id]["mirror"+strconv.Itoa(i)])

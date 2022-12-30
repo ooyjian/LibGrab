@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strconv"
+)
 
 // Global variables go here
 var DEBUG_LEVEL int = 50
@@ -13,5 +17,13 @@ func printlnWrapper(content string, level int) {
 }
 
 func main() {
-	makeRequest("hello world")
+	args := os.Args
+	book := args[1]
+	var err error
+	MAX_BOOKS, err = strconv.Atoi(args[2])
+	if err != nil {
+		fmt.Println("Wrong format of input.")
+		return
+	}
+	makeRequest(book)
 }
