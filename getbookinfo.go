@@ -35,7 +35,14 @@ func parseEntry(n *html.Node, m map[string]string) {
 			m["author"] = author
 			printlnWrapper(author, 3)
 		case 2: // book title and link
-			title := n.FirstChild.FirstChild.Data
+			var title string
+			for temp := n.FirstChild; temp != nil; temp = temp.NextSibling {
+				for _, attr := range temp.Attr {
+					if attr.Key == "id" {
+						title = temp.FirstChild.Data
+					}
+				}
+			}
 			m["title"] = title
 			printlnWrapper(title, 3)
 		case 3:
@@ -58,7 +65,7 @@ func parseEntry(n *html.Node, m map[string]string) {
 			}
 		case 7:
 			size := n.FirstChild.Data
-			m["size"] = "size"
+			m["size"] = size
 			printlnWrapper(size, 3)
 		case 8:
 			extension := n.FirstChild.Data
@@ -115,8 +122,12 @@ func getBookInfo(n *html.Node) []map[string]string {
 			printlnWrapper("Val: "+attr.Val, 1)
 			if attr.Key == "class" && attr.Val == "c" {
 				n = n.FirstChild.FirstChild.NextSibling
+				if n == nil {
+					printlnWrapper("There are no books with this name available.", 100)
+					return nil
+				}
 				if n.DataAtom == 0 {
-					printlnWrapper("There are no books with this name available.", 1)
+					printlnWrapper("There are no books with this name available.", 100)
 					return nil
 				}
 				// parse to the actual book rows (starting from the second <tr>)

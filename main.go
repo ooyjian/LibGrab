@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
-	"strconv"
 )
 
 // Global variables go here
@@ -18,12 +18,15 @@ func printlnWrapper(content string, level int) {
 
 func main() {
 	args := os.Args
-	book := args[1]
-	var err error
-	MAX_BOOKS, err = strconv.Atoi(args[2])
-	if err != nil {
-		fmt.Println("Wrong format of input.")
+	if len(args) < 2 {
+		fmt.Println("You need to provide the name of a book.")
 		return
 	}
+	book := args[1]
+
+	numBooksPtr := flag.Int("num", 3, "The maximum number of results that is shown.")
+	// extPtr := flag.String("ext", "", "Limit results to a certain file extension.")
+	MAX_BOOKS = *numBooksPtr
+
 	makeRequest(book)
 }
