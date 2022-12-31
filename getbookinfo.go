@@ -8,7 +8,25 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func parseEntry(n *html.Node, m map[string]string) {
+type bookCounter struct {
+	mu      sync.Mutex
+	counter int
+}
+
+func (n *bookCounter) inc() {
+	n.mu.Lock()
+	n.counter++
+	n.mu.Unlock()
+}
+
+func (n *bookCounter) count() int {
+	n.mu.Lock()
+	c := n.counter
+	n.mu.Unlock()
+	return c
+}
+
+func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
 	if n == nil {
 		printlnWrapper("The input node is nil", 100)
 		return
@@ -27,11 +45,14 @@ func parseEntry(n *html.Node, m map[string]string) {
 		return true
 	}
 
-	for i := 1; i < 11; i++ {
+	for i := 1; i < 10; i++ {
 		n = n.NextSibling.NextSibling
 		switch i {
 		case 1: // author, grab name
-			author := n.FirstChild.FirstChild.Data
+			var author string
+			if n.FirstChild.FirstChild != nil {
+				author = n.FirstChild.FirstChild.Data
+			}
 			m["author"] = author
 			printlnWrapper(author, 3)
 		case 2: // book title and link
@@ -40,6 +61,7 @@ func parseEntry(n *html.Node, m map[string]string) {
 				for _, attr := range temp.Attr {
 					if attr.Key == "id" {
 						title = temp.FirstChild.Data
+						break
 					}
 				}
 			}
@@ -69,6 +91,10 @@ func parseEntry(n *html.Node, m map[string]string) {
 			printlnWrapper(size, 3)
 		case 8:
 			extension := n.FirstChild.Data
+			if len(ext) > 0 && extension != ext {
+				m["title"] = ""
+				return
+			}
 			m["extension"] = extension
 			printlnWrapper(extension, 3)
 		case 9:
@@ -77,17 +103,23 @@ func parseEntry(n *html.Node, m map[string]string) {
 					if attr.Key == "href" {
 						m["mirror1"] = attr.Val
 						printlnWrapper(attr.Val, 3)
+						b.inc()
+						break
 					}
 				}
-			}
-		case 10:
-			n = n.PrevSibling
-			if checkElemExist("MIRROR2") {
-				for _, attr := range n.FirstChild.Attr {
-					if attr.Key == "href" {
-						m["mirror2"] = attr.Val
-						printlnWrapper(attr.Val, 3)
+			} else {
+				n = n.NextSibling
+				if checkElemExist("MIRROR2") {
+					for _, attr := range n.FirstChild.Attr {
+						if attr.Key == "href" {
+							m["mirror2"] = attr.Val
+							printlnWrapper(attr.Val, 3)
+							b.inc()
+							break
+						}
 					}
+				} else {
+					m["title"] = "" // so it does not get displayed
 				}
 			}
 		}
@@ -132,8 +164,12 @@ func getBookInfo(n *html.Node) []map[string]string {
 				}
 				// parse to the actual book rows (starting from the second <tr>)
 				var wg sync.WaitGroup
+				ct := bookCounter{counter: 0}
 				bookIndex := 0
 				for row := n; row != nil; row = row.NextSibling {
+					if ct.count() == max_books {
+						break
+					}
 					rowElems := row.FirstChild
 					if rowElems == nil {
 						continue
@@ -141,12 +177,9 @@ func getBookInfo(n *html.Node) []map[string]string {
 					bookMap := make(map[string]string)
 					bookTable[bookIndex] = bookMap
 					bookIndex++
-					if bookIndex > MAX_BOOKS {
-						break
-					}
 					wg.Add(1)
 					go func() {
-						parseEntry(rowElems, bookMap)
+						parseEntry(rowElems, bookMap, &ct)
 						wg.Done()
 					}()
 				}
@@ -158,8 +191,6 @@ func getBookInfo(n *html.Node) []map[string]string {
 						printlnWrapper(k+": "+v, 2)
 					}
 				}
-
-				//getDownloadLink(bookTable[0]["mirror1"])
 
 				return bookTable
 			}

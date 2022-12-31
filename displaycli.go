@@ -16,6 +16,8 @@ func displayBooks(bt []map[string]string) error {
 	cleanbt := make([]map[string]string, 0, len(bt))
 
 	t.AppendHeader(table.Row{"#", "Title", "Author", "Size", "Ext", "Publisher", "Year", "Pages"})
+
+	counter := 0
 	for i, r := range bt {
 		row := make([]interface{}, 8, 8)
 		row[0] = i + 1
@@ -29,6 +31,10 @@ func displayBooks(bt []map[string]string) error {
 		if row[1] == "" {
 			continue
 		}
+		counter++
+		if counter > max_books {
+			break
+		}
 		cleanbt = append(cleanbt, r)
 		t.AppendRow(row)
 	}
@@ -39,7 +45,7 @@ func displayBooks(bt []map[string]string) error {
 	t.Render()
 
 	var id int
-	fmt.Print("Enter the book you want to download (1-" + strconv.Itoa(MAX_BOOKS) + "): ")
+	fmt.Print("Enter the book you want to download (1-" + strconv.Itoa(max_books) + "): ")
 	_, err := fmt.Scanf("%d", &id)
 	if err != nil {
 		return err
