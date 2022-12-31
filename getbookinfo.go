@@ -57,11 +57,13 @@ func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
 			printlnWrapper(author, 3)
 		case 2: // book title and link
 			var title string
-			for temp := n.FirstChild; temp != nil; temp = temp.NextSibling {
-				for _, attr := range temp.Attr {
-					if attr.Key == "id" {
-						title = temp.FirstChild.Data
-						break
+			if checkElemExist("TITLE") {
+				for temp := n.FirstChild; temp != nil; temp = temp.NextSibling {
+					for _, attr := range temp.Attr {
+						if attr.Key == "id" {
+							title = temp.FirstChild.Data
+							break
+						}
 					}
 				}
 			}
@@ -86,11 +88,16 @@ func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
 				printlnWrapper(pages, 3)
 			}
 		case 7:
-			size := n.FirstChild.Data
-			m["size"] = size
-			printlnWrapper(size, 3)
+			if checkElemExist("SIZE") {
+				size := n.FirstChild.Data
+				m["size"] = size
+				printlnWrapper(size, 3)
+			}
 		case 8:
-			extension := n.FirstChild.Data
+			var extension string
+			if checkElemExist("EXTENSION") {
+				extension = n.FirstChild.Data
+			}
 			if len(ext) > 0 && extension != ext {
 				m["title"] = ""
 				return
