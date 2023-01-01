@@ -51,7 +51,7 @@ func displayBooks(bt []map[string]string) error {
 		return err
 	}
 	id -= 1 // to match the right index of the book
-	if id < 0 || id > 2 {
+	if id < 0 || id >= max_books {
 		printlnWrapper("The input is not within range.", 100)
 		return nil
 	}
