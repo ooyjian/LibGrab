@@ -14,6 +14,7 @@ Run the following command under the directory where LibGrab is located:
 USAGE: ./LibGrab <book-name> [OPTIONS]
   OPTIONS:
     -n <number>          number of search results to display
-    -ext <extension>     limit results to a certain file extension (pdf, mobi, etc.)
+    -e <extension>       limit results to a certain file extension (pdf, mobi, etc.)
+    -p <path>            The path to store the downloaded document.
 ```
 You will find the book you chose downloaded under the same directory where LibGrab is ran. 
