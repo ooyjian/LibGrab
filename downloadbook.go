@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -53,6 +54,8 @@ func requestDownload(link, filepath, title string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("Download Successful! Your document is downloaded at " + path + title)
 
 	return nil
 }

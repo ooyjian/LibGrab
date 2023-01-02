@@ -58,11 +58,14 @@ func displayBooks(bt []map[string]string) error {
 
 	for i := 1; i < 3; i++ {
 		link, err := getDownloadLink(cleanbt[id]["mirror"+strconv.Itoa(i)])
+		if err != nil {
+			continue
+		}
 		if len(link) == 0 {
 			printlnWrapper("Could not find a link", 100)
 			continue
 		}
-		err = requestDownload(link, "./", cleanbt[id]["title"]+"."+cleanbt[id]["extension"])
+		err = requestDownload(link, path, cleanbt[id]["title"]+"."+cleanbt[id]["extension"])
 		if err == nil {
 			return nil
 		}

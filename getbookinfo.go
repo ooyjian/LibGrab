@@ -224,7 +224,10 @@ func makeRequest(name string) error {
 
 	bookTable := getBookInfo(body)
 	if bookTable != nil {
-		displayBooks(bookTable)
+		err = displayBooks(bookTable)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
