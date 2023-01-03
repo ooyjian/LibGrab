@@ -18,9 +18,12 @@ func displayBooks(bt []map[string]string) error {
 	t.AppendHeader(table.Row{"#", "Title", "Author", "Size", "Ext", "Publisher", "Year", "Pages"})
 
 	counter := 0
-	for i, r := range bt {
+	for _, r := range bt {
+		if r["title"] == "" {
+			continue
+		}
 		row := make([]interface{}, 8, 8)
-		row[0] = i + 1
+		row[0] = counter + 1
 		row[1] = r["title"]
 		row[2] = r["author"]
 		row[3] = r["size"]
@@ -28,9 +31,6 @@ func displayBooks(bt []map[string]string) error {
 		row[5] = r["publisher"]
 		row[6] = r["year"]
 		row[7] = r["pages"]
-		if row[1] == "" {
-			continue
-		}
 		counter++
 		if counter > max_books {
 			break
