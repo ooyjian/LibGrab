@@ -45,9 +45,17 @@ func displayBooks(bt []map[string]string) error {
 	t.Render()
 
 	var id int
+	var idstr string
+	fmt.Println("Type 'q' to exit")
 	fmt.Print("Enter the book you want to download (1-" + strconv.Itoa(max_books) + "): ")
-	_, err := fmt.Scanf("%d", &id)
+	_, err := fmt.Scanf("%s", &idstr)
 	if err != nil {
+		return err
+	}
+	if idstr == "q" {
+		return nil
+	}
+	if id, err = strconv.Atoi(idstr); err != nil {
 		return err
 	}
 	id -= 1 // to match the right index of the book

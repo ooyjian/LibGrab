@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"sync"
 
@@ -26,15 +27,121 @@ func (n *bookCounter) count() int {
 	return c
 }
 
-func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
+func makeRequest(name string) error {
+	name = strings.Replace(name, " ", "+", -1)
+	url := "http://libgen.rs/search.php?req=" + name + "&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
+	// alturl := "http://libgen.rs/search.php?&req=" + name + "&phrase=1&view=simple&column=def&sort=def&sortmode=ASC&page=1"
+	resp, err := getRequest(url)
+	if err != nil {
+		return err
+	}
+
+	body, err := html.Parse(resp.Body)
+	if err != nil {
+		return err
+	}
+	body = body.FirstChild
+
+	bookTable, err := getBookInfo(body)
+	if err != nil {
+		return err
+	}
+	if bookTable != nil {
+		err = displayBooks(bookTable)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getBookInfo(n *html.Node) ([]map[string]string, error) {
+	if err := findHtmlBody(&n); err != nil {
+		return nil, err
+	}
+	n = n.FirstChild
+
+	bookTable := make([]map[string]string, 30, 30)
+	for n != nil {
+		printlnWrapper(n.Data, 1)
+		for _, attr := range n.Attr {
+			printlnWrapper("Key: "+attr.Key, 1)
+			printlnWrapper("Val: "+attr.Val, 1)
+			if attr.Key == "class" && attr.Val == "c" {
+				n = n.FirstChild.FirstChild.NextSibling
+				if n == nil {
+					printlnWrapper("There are no books with this name available.", 100)
+					return nil, errors.New("There are no books with this name available.")
+				}
+				if n.DataAtom == 0 {
+					printlnWrapper("There are no books with this name available.", 100)
+					return nil, errors.New("There are no books with this name available.")
+				}
+				// parse to the actual book rows (starting from the second <tr>)
+				var wg sync.WaitGroup
+				ct := bookCounter{counter: 0}
+				bookIndex := 0
+				for row := n; row != nil; row = row.NextSibling {
+					if ct.count() == max_books {
+						break
+					}
+					rowElems := row.FirstChild
+					if rowElems == nil {
+						continue
+					}
+					bookMap := make(map[string]string)
+					bookTable[bookIndex] = bookMap
+					bookIndex++
+					wg.Add(1)
+					go func() {
+						if err := parseEntry(rowElems, bookMap, &ct); err != nil {
+							printlnWrapper(err.Error(), 100)
+						}
+						wg.Done()
+					}()
+				}
+				wg.Wait()
+
+				for j := 0; j < len(bookTable); j++ {
+					m := bookTable[j]
+					for k, v := range m {
+						printlnWrapper(k+": "+v, 2)
+					}
+				}
+
+				return bookTable, nil
+			}
+		}
+		n = n.NextSibling
+	}
+	printlnWrapper("Can't find the right <table>", 1)
+	return nil, errors.New("Can't find the right <table>")
+}
+
+func findHtmlBody(n **html.Node) error {
+	for (*n).DataAtom != atom.Body {
+		if *n == nil {
+			printlnWrapper("Can't find <body>", 100)
+			return errors.New("Can't find <body>")
+		}
+		if (*n).DataAtom == atom.Html {
+			*n = (*n).FirstChild
+		}
+		*n = (*n).NextSibling
+	}
+	return nil
+}
+
+func parseEntry(n *html.Node, m map[string]string, b *bookCounter) error {
 	if n == nil {
 		printlnWrapper("The input node is nil", 100)
-		return
+		return errors.New("The input node is nil")
 	}
 
 	if n.DataAtom != atom.Td {
 		printlnWrapper("The element needs to be a <td>", 10)
-		return
+		return errors.New("The element needs to be a <td>")
 	}
 
 	checkElemExist := func(elem string) bool {
@@ -100,7 +207,7 @@ func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
 			}
 			if len(ext) > 0 && extension != ext {
 				m["title"] = ""
-				return
+				return nil
 			}
 			m["extension"] = extension
 			printlnWrapper(extension, 3)
@@ -131,104 +238,5 @@ func parseEntry(n *html.Node, m map[string]string, b *bookCounter) {
 			}
 		}
 	}
-}
-
-func findHtmlBody(n **html.Node) bool {
-	for (*n).DataAtom != atom.Body {
-		if *n == nil {
-			printlnWrapper("Can't find <body>", 100)
-			return false
-		}
-		if (*n).DataAtom == atom.Html {
-			*n = (*n).FirstChild
-		}
-		*n = (*n).NextSibling
-	}
-	return true
-}
-
-func getBookInfo(n *html.Node) []map[string]string {
-	if !findHtmlBody(&n) {
-		return nil
-	}
-	n = n.FirstChild
-
-	bookTable := make([]map[string]string, 30, 30)
-	for n != nil {
-		printlnWrapper(n.Data, 1)
-		for _, attr := range n.Attr {
-			printlnWrapper("Key: "+attr.Key, 1)
-			printlnWrapper("Val: "+attr.Val, 1)
-			if attr.Key == "class" && attr.Val == "c" {
-				n = n.FirstChild.FirstChild.NextSibling
-				if n == nil {
-					printlnWrapper("There are no books with this name available.", 100)
-					return nil
-				}
-				if n.DataAtom == 0 {
-					printlnWrapper("There are no books with this name available.", 100)
-					return nil
-				}
-				// parse to the actual book rows (starting from the second <tr>)
-				var wg sync.WaitGroup
-				ct := bookCounter{counter: 0}
-				bookIndex := 0
-				for row := n; row != nil; row = row.NextSibling {
-					if ct.count() == max_books {
-						break
-					}
-					rowElems := row.FirstChild
-					if rowElems == nil {
-						continue
-					}
-					bookMap := make(map[string]string)
-					bookTable[bookIndex] = bookMap
-					bookIndex++
-					wg.Add(1)
-					go func() {
-						parseEntry(rowElems, bookMap, &ct)
-						wg.Done()
-					}()
-				}
-				wg.Wait()
-
-				for j := 0; j < len(bookTable); j++ {
-					m := bookTable[j]
-					for k, v := range m {
-						printlnWrapper(k+": "+v, 2)
-					}
-				}
-
-				return bookTable
-			}
-		}
-		n = n.NextSibling
-	}
-	printlnWrapper("Can't find the right <table>", 1)
-	return nil
-}
-
-func makeRequest(name string) error {
-	name = strings.Replace(name, " ", "+", -1)
-	url := "http://libgen.rs/search.php?req=" + name + "&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
-	resp, err := getRequest(url)
-	if err != nil {
-		return err
-	}
-
-	body, err := html.Parse(resp.Body)
-	if err != nil {
-		return err
-	}
-	body = body.FirstChild
-
-	bookTable := getBookInfo(body)
-	if bookTable != nil {
-		err = displayBooks(bookTable)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
